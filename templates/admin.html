@@ -1,0 +1,371 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin Dashboard - TalentTrack</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+<body>
+    <nav class="navbar">
+        <div class="nav-container">
+            <div class="nav-brand-logo">
+                <img src="{{ url_for('static', filename='logo-icon.svg') }}" alt="TalentTrack" class="nav-logo-icon">
+                <h1 class="nav-brand">TalentTrack Admin</h1>
+            </div>
+            <div class="nav-links">
+                <!-- Admin Profile Dropdown -->
+                <div class="profile-dropdown">
+                    <div class="profile-circle admin-profile" onclick="toggleProfileMenu()">
+                        <span>👑</span>
+                    </div>
+                    <div id="profileMenu" class="profile-menu">
+                        <div class="profile-header admin-header">
+                            <div class="profile-circle-large admin-circle">
+                                <span>👑</span>
+                            </div>
+                            <h3>{{ session.username }}</h3>
+                            <p class="admin-badge">Administrator</p>
+                        </div>
+                        <div class="profile-details">
+                            <div class="detail-item">
+                                <span class="detail-icon">👤</span>
+                                <div>
+                                    <small>Role</small>
+                                    <p>System Administrator</p>
+                                </div>
+                            </div>
+                            <div class="detail-item">
+                                <span class="detail-icon">💼</span>
+                                <div>
+                                    <small>Job Postings</small>
+                                    <p>{{ admin_stats.total_jobs }} active</p>
+                                </div>
+                            </div>
+                            <div class="detail-item">
+                                <span class="detail-icon">👥</span>
+                                <div>
+                                    <small>Total Users</small>
+                                    <p>{{ admin_stats.total_users }} registered</p>
+                                </div>
+                            </div>
+                            <div class="detail-item">
+                                <span class="detail-icon">📝</span>
+                                <div>
+                                    <small>Applications</small>
+                                    <p>{{ admin_stats.total_applications }} total</p>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="profile-actions">
+                            <a href="{{ url_for('admin_settings') }}" class="btn btn-secondary btn-block" style="margin-bottom: 0.5rem;">⚙️ Settings</a>
+                            <a href="{{ url_for('logout') }}" class="btn btn-danger btn-block">Logout</a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <div class="dashboard-container">
+        {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+                {% for category, message in messages %}
+                    <div class="flash flash-{{ category }}">{{ message }}</div>
+                {% endfor %}
+            {% endif %}
+        {% endwith %}
+
+        <!-- Quick Stats Cards -->
+        <div class="quick-stats-grid">
+            <div class="stat-card-modern">
+                <div class="stat-icon-wrapper" style="background: linear-gradient(135deg, #667eea, #764ba2);">
+                    <span class="stat-icon-large">💼</span>
+                </div>
+                <div class="stat-info-modern">
+                    <h3>{{ admin_stats.total_jobs }}</h3>
+                    <p>Active Jobs</p>
+                </div>
+            </div>
+            
+            <div class="stat-card-modern">
+                <div class="stat-icon-wrapper" style="background: linear-gradient(135deg, #f093fb, #f5576c);">
+                    <span class="stat-icon-large">📝</span>
+                </div>
+                <div class="stat-info-modern">
+                    <h3>{{ admin_stats.total_applications }}</h3>
+                    <p>Total Applications</p>
+                </div>
+            </div>
+            
+            <div class="stat-card-modern">
+                <div class="stat-icon-wrapper" style="background: linear-gradient(135deg, #4facfe, #00f2fe);">
+                    <span class="stat-icon-large">👥</span>
+                </div>
+                <div class="stat-info-modern">
+                    <h3>{{ admin_stats.total_users }}</h3>
+                    <p>Registered Users</p>
+                </div>
+            </div>
+            
+            <div class="stat-card-modern">
+                <div class="stat-icon-wrapper" style="background: linear-gradient(135deg, #43e97b, #38f9d7);">
+                    <span class="stat-icon-large">📄</span>
+                </div>
+                <div class="stat-info-modern">
+                    <h3>{{ admin_stats.total_resumes }}</h3>
+                    <p>Total Resumes</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Main Cards Section -->
+        <div class="main-cards-grid">
+            <!-- Job Postings Card -->
+            <div class="main-card">
+                <div class="card-header">
+                    <h2>💼 Job Postings</h2>
+                    <div class="card-actions">
+                        <span class="card-count">{{ job_stats|length }} Jobs</span>
+                        <a href="{{ url_for('create_job') }}" class="btn btn-small btn-success">+ New Job</a>
+                    </div>
+                </div>
+                <div class="card-content">
+                    {% if job_stats %}
+                    <div class="job-list-compact">
+                        {% for item in job_stats[:5] %}
+                        <div class="job-item-compact admin-job-item">
+                            <div class="job-item-header">
+                                {% if item.job.company_logo %}
+                                <img src="{{ item.job.company_logo | logo_url }}" alt="{{ item.job.company_name }}" class="company-logo-tiny">
+                                {% else %}
+                                <div class="company-logo-tiny-placeholder">{{ item.job.company_name[0] }}</div>
+                                {% endif %}
+                                <div class="job-item-info">
+                                    <h4>{{ item.job.company_name }}</h4>
+                                    <p>{{ item.job.position }}</p>
+                                    <small>{{ item.total_applications }} applications</small>
+                                </div>
+                            </div>
+                            <div class="job-item-actions">
+                                <a href="{{ url_for('view_job_applications', job_id=item.job.id) }}" class="btn btn-tiny btn-primary">View</a>
+                                <form method="POST" action="{{ url_for('delete_job', job_id=item.job.id) }}" style="display: inline;">
+                                    <button type="submit" class="btn btn-tiny btn-danger" onclick="return confirm('Delete this job?')">Delete</button>
+                                </form>
+                            </div>
+                        </div>
+                        {% endfor %}
+                    </div>
+                    {% if job_stats|length > 5 %}
+                    <button class="btn btn-secondary btn-block" onclick="showAllJobs()">View All {{ job_stats|length }} Jobs</button>
+                    {% endif %}
+                    {% else %}
+                    <p class="empty-state">No job postings yet. Create your first job!</p>
+                    {% endif %}
+                </div>
+            </div>
+
+            <!-- User Management Card -->
+            <div class="main-card">
+                <div class="card-header">
+                    <h2>👥 User Management</h2>
+                    <span class="card-count">{{ users|length }} Users</span>
+                </div>
+                <div class="card-content">
+                    {% if users %}
+                    <div class="user-list-compact">
+                        {% for user in users[:5] %}
+                        <div class="user-item-compact">
+                            <div class="user-item-header">
+                                <div class="user-avatar">{{ user.username[0].upper() }}</div>
+                                <div class="user-item-info">
+                                    <h4>{{ user.username }}</h4>
+                                    <p>{{ user.email }}</p>
+                                </div>
+                            </div>
+                            <div class="user-item-meta">
+                                <span class="badge {{ 'badge-admin' if user.is_admin else 'badge-user' }}">
+                                    {{ 'Admin' if user.is_admin else 'User' }}
+                                </span>
+                            </div>
+                        </div>
+                        {% endfor %}
+                    </div>
+                    {% if users|length > 5 %}
+                    <button class="btn btn-secondary btn-block" onclick="showAllUsers()">View All {{ users|length }} Users</button>
+                    {% endif %}
+                    {% else %}
+                    <p class="empty-state">No users registered yet.</p>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+
+        <!-- Statistics Graphs Section -->
+        <div class="stats-section">
+            <h2>📊 System-Wide Analytics & Insights</h2>
+            <div class="graphs-grid-six">
+                <!-- Graph 1: Application Status Overview -->
+                <div class="graph-card">
+                    <h3>📋 Application Status Distribution</h3>
+                    <p class="graph-subtitle">Total applications across all jobs</p>
+                    <canvas id="statusChart"></canvas>
+                </div>
+
+                <!-- Graph 2: ATS Score Distribution -->
+                <div class="graph-card">
+                    <h3>🎯 ATS Score Performance</h3>
+                    <p class="graph-subtitle">Quality of applications received</p>
+                    <canvas id="atsChart"></canvas>
+                </div>
+
+                <!-- Graph 3: Top Jobs by Applications -->
+                <div class="graph-card">
+                    <h3>🔥 Most Popular Jobs</h3>
+                    <p class="graph-subtitle">Jobs with highest application count</p>
+                    <canvas id="jobsChart"></canvas>
+                </div>
+
+                <!-- Graph 4: Applications Timeline -->
+                <div class="graph-card">
+                    <h3>📈 Application Trends (7 Days)</h3>
+                    <p class="graph-subtitle">Daily application submissions</p>
+                    <canvas id="timelineChart"></canvas>
+                </div>
+
+                <!-- Graph 5: Top Skills in Demand -->
+                <div class="graph-card">
+                    <h3>💡 Top Skills Across Resumes</h3>
+                    <p class="graph-subtitle">Most common skills in candidate pool</p>
+                    <canvas id="skillsChart"></canvas>
+                </div>
+
+                <!-- Graph 6: User Engagement -->
+                <div class="graph-card">
+                    <h3>👥 User Engagement Rate</h3>
+                    <p class="graph-subtitle">Active vs inactive users</p>
+                    <canvas id="engagementChart"></canvas>
+                </div>
+            </div>
+        </div>
+
+        <!-- All Jobs Modal -->
+        <div id="allJobsModal" class="modal-overlay" style="display: none;">
+            <div class="modal-large">
+                <div class="modal-header">
+                    <h2>All Job Postings</h2>
+                    <span class="close-modal" onclick="closeAllJobsModal()">&times;</span>
+                </div>
+                <div class="modal-body">
+                    {% for item in job_stats %}
+                    <div class="job-card-admin">
+                        <div class="job-card-header">
+                            {% if item.job.company_logo %}
+                            <img src="{{ item.job.company_logo | logo_url }}" alt="{{ item.job.company_name }}" class="company-logo-small">
+                            {% else %}
+                            <div class="company-logo-placeholder">{{ item.job.company_name[0] }}</div>
+                            {% endif %}
+                            <div>
+                                <h4>{{ item.job.company_name }}</h4>
+                                <p>{{ item.job.position }}</p>
+                            </div>
+                        </div>
+                        <div class="job-card-body">
+                            <p><strong>Vacancies:</strong> {{ item.job.vacancies }}</p>
+                            <p><strong>Applications:</strong> {{ item.total_applications }}</p>
+                            <p><strong>Posted:</strong> {{ item.job.created_at.strftime('%b %d, %Y') }}</p>
+                            {% if item.job.required_skills %}
+                            <div class="skills-preview">
+                                <strong>Skills:</strong>
+                                <div class="skills-tags">
+                                    {% for skill in item.job.required_skills.split(',')[:3] %}
+                                    <span class="skill-tag-small">{{ skill.strip() }}</span>
+                                    {% endfor %}
+                                    {% if item.job.required_skills.split(',')|length > 3 %}
+                                    <span class="skill-tag-small">+{{ item.job.required_skills.split(',')|length - 3 }}</span>
+                                    {% endif %}
+                                </div>
+                            </div>
+                            {% endif %}
+                        </div>
+                        <div class="job-card-actions">
+                            <a href="{{ url_for('view_job_applications', job_id=item.job.id) }}" class="btn btn-small btn-primary">View Applications</a>
+                            <form method="POST" action="{{ url_for('delete_job', job_id=item.job.id) }}" style="display: inline;">
+                                <button type="submit" class="btn btn-small btn-danger" onclick="return confirm('Delete this job posting?')">Delete</button>
+                            </form>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+
+        <!-- All Users Modal -->
+        <div id="allUsersModal" class="modal-overlay" style="display: none;">
+            <div class="modal-large">
+                <div class="modal-header">
+                    <h2>All Registered Users</h2>
+                    <span class="close-modal" onclick="closeAllUsersModal()">&times;</span>
+                </div>
+                <div class="modal-body">
+                    <div class="table-container">
+                        <table class="users-table">
+                            <thead>
+                                <tr>
+                                    <th>ID</th>
+                                    <th>Username</th>
+                                    <th>Email</th>
+                                    <th>Mobile</th>
+                                    <th>Role</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for user in users %}
+                                <tr>
+                                    <td>{{ user.id }}</td>
+                                    <td><strong>{{ user.username }}</strong></td>
+                                    <td>{{ user.email }}</td>
+                                    <td>{{ user.mobile }}</td>
+                                    <td>
+                                        <span class="badge {{ 'badge-admin' if user.is_admin else 'badge-user' }}">
+                                            {{ 'Admin' if user.is_admin else 'User' }}
+                                        </span>
+                                    </td>
+                                    <td class="action-buttons">
+                                        <form method="POST" action="{{ url_for('toggle_admin', user_id=user.id) }}" style="display: inline;">
+                                            <button type="submit" class="btn btn-small btn-warning" 
+                                                    onclick="return confirm('Change user role?')">
+                                                {{ 'Remove Admin' if user.is_admin else 'Make Admin' }}
+                                            </button>
+                                        </form>
+                                        <form method="POST" action="{{ url_for('delete_user', user_id=user.id) }}" style="display: inline;">
+                                            <button type="submit" class="btn btn-small btn-danger" 
+                                                    onclick="return confirm('Delete this user?')">
+                                                Delete
+                                            </button>
+                                        </form>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+    </div>
+
+    <script src="{{ url_for('static', filename='script.js') }}"></script>
+    <script src="{{ url_for('static', filename='admin-dashboard.js') }}"></script>
+    <script>
+        // Initialize Charts with comprehensive system-wide data
+        const adminStats = {{ admin_stats | tojson }};
+        const jobStats = {{ job_stats_json | tojson }};
+        const users = {{ users_data | tojson }};
+        initializeAdminCharts(adminStats, jobStats, users);
+    </script>
+</body>
+</html>

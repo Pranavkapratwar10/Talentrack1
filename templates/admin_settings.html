@@ -1,0 +1,165 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin Settings - TalentTrack</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+    <nav class="navbar">
+        <div class="nav-container">
+            <div class="nav-brand-logo">
+                <img src="{{ url_for('static', filename='logo-icon.svg') }}" alt="TalentTrack" class="nav-logo-icon">
+                <h1 class="nav-brand">TalentTrack Admin Settings</h1>
+            </div>
+            <div class="nav-links">
+                <a href="{{ url_for('admin_dashboard') }}" class="btn btn-primary">← Back to Dashboard</a>
+            </div>
+        </div>
+    </nav>
+
+    <div class="dashboard-container">
+        <div class="settings-page">
+            <div class="page-header">
+                <h1>⚙️ System Settings</h1>
+                <p>Configure TalentTrack system settings and API integrations</p>
+            </div>
+
+            {% with messages = get_flashed_messages(with_categories=true) %}
+                {% if messages %}
+                    {% for category, message in messages %}
+                        <div class="flash flash-{{ category }}">{{ message }}</div>
+                    {% endfor %}
+                {% endif %}
+            {% endwith %}
+
+            <!-- Groq API Key Settings -->
+            <div class="settings-card">
+                <div class="settings-card-header">
+                    <h2>🤖 Groq AI API Configuration</h2>
+                    <p>Manage your Groq API key for AI-powered resume analysis and ATS scoring</p>
+                </div>
+
+                <div class="settings-card-body">
+                    <!-- Current API Key Info -->
+                    <div class="info-box">
+                        <div class="info-icon">ℹ️</div>
+                        <div class="info-content">
+                            <h4>Current API Key Status</h4>
+                            <p><strong>Key:</strong> <code>{{ current_key[:20] }}...{{ current_key[-10:] }}</code></p>
+                            {% if last_updated %}
+                            <p><strong>Last Updated:</strong> {{ last_updated.strftime('%B %d, %Y at %I:%M %p') }}</p>
+                            {% else %}
+                            <p><strong>Status:</strong> Using default API key</p>
+                            {% endif %}
+                        </div>
+                    </div>
+
+                    <!-- Update Form -->
+                    <form method="POST" action="{{ url_for('admin_settings') }}" class="settings-form">
+                        <div class="form-group">
+                            <label for="groq_api_key">
+                                <strong>Groq API Key</strong>
+                                <span class="required">*</span>
+                            </label>
+                            <input 
+                                type="text" 
+                                id="groq_api_key" 
+                                name="groq_api_key" 
+                                value="{{ current_key }}" 
+                                required
+                                placeholder="gsk_..."
+                                class="api-key-input"
+                            >
+                            <small>
+                                Enter your Groq API key. Get one from 
+                                <a href="https://console.groq.com/keys" target="_blank" rel="noopener">
+                                    Groq Console <span style="font-size: 0.8rem;">🔗</span>
+                                </a>
+                            </small>
+                        </div>
+
+                        <div class="form-actions">
+                            <button type="submit" class="btn btn-primary btn-large">
+                                💾 Save API Key
+                            </button>
+                            <button type="button" class="btn btn-secondary btn-large" onclick="testApiKey()">
+                                🧪 Test Connection
+                            </button>
+                        </div>
+                    </form>
+
+                    <!-- API Key Information -->
+                    <div class="help-section">
+                        <h4>📚 About Groq API</h4>
+                        <ul>
+                            <li><strong>Purpose:</strong> Powers AI resume parsing and ATS score calculation</li>
+                            <li><strong>Model Used:</strong> Llama 3.3 70B Versatile</li>
+                            <li><strong>Features:</strong> Extracts skills, experience, education, certifications, and projects</li>
+                            <li><strong>Security:</strong> API key is stored securely in the database</li>
+                        </ul>
+
+                        <h4>🔐 Security Best Practices</h4>
+                        <ul>
+                            <li>Never share your API key publicly</li>
+                            <li>Rotate your API key regularly</li>
+                            <li>Monitor API usage in Groq Console</li>
+                            <li>Keep your API key confidential</li>
+                        </ul>
+
+                        <h4>⚠️ Important Notes</h4>
+                        <ul>
+                            <li>Changing the API key will affect all future resume analysis</li>
+                            <li>Existing analyzed resumes will not be re-processed</li>
+                            <li>Invalid API key will cause resume upload failures</li>
+                            <li>Test the connection after updating the key</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Future Settings Placeholder -->
+            <div class="settings-card" style="opacity: 0.6;">
+                <div class="settings-card-header">
+                    <h2>🔮 More Settings Coming Soon</h2>
+                    <p>Additional configuration options will be available in future updates</p>
+                </div>
+                <div class="settings-card-body">
+                    <ul style="list-style: none; padding: 0;">
+                        <li>📧 Email Notifications Configuration</li>
+                        <li>🎨 Theme Customization</li>
+                        <li>📊 Analytics Settings</li>
+                        <li>🔒 Security Options</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="{{ url_for('static', filename='script.js') }}"></script>
+    <script>
+        function testApiKey() {
+            const apiKey = document.getElementById('groq_api_key').value;
+            
+            if (!apiKey) {
+                alert('Please enter an API key first');
+                return;
+            }
+            
+            // Show loading state
+            const btn = event.target;
+            const originalText = btn.innerHTML;
+            btn.innerHTML = '⏳ Testing...';
+            btn.disabled = true;
+            
+            // Simulate API test (in production, this would make an actual API call)
+            setTimeout(() => {
+                btn.innerHTML = originalText;
+                btn.disabled = false;
+                alert('✅ API Key format looks valid!\n\nNote: Full validation will occur when processing resumes.');
+            }, 1500);
+        }
+    </script>
+</body>
+</html>

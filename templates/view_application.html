@@ -1,0 +1,143 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Application Details - TalentTrack</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+    <nav class="navbar">
+        <div class="nav-container">
+            <div class="nav-brand-logo">
+                <img src="{{ url_for('static', filename='logo-icon.svg') }}" alt="TalentTrack" class="nav-logo-icon">
+                <h1 class="nav-brand">TalentTrack</h1>
+            </div>
+            <div class="nav-links">
+                <a href="{{ url_for('dashboard') }}" class="btn btn-primary">← Back to Dashboard</a>
+            </div>
+        </div>
+    </nav>
+
+    <div class="dashboard-container">
+        <div class="dashboard-header">
+            <h2>Application Details</h2>
+            <p>{{ application.job.company_name }} - {{ application.job.position }}</p>
+        </div>
+
+        <div class="ats-report-container">
+            <div class="ats-score-card">
+                <h3>Your ATS Score</h3>
+                <div class="ats-score-display" style="background: {% if application.ats_score >= 70 %}#10b981{% elif application.ats_score >= 50 %}#f59e0b{% else %}#ef4444{% endif %};">
+                    {{ application.ats_score }}%
+                </div>
+                <p class="ats-status">
+                    {% if application.ats_score >= 70 %}
+                    🟢 Excellent Match!
+                    {% elif application.ats_score >= 50 %}
+                    🟡 Good Match
+                    {% else %}
+                    🔴 Needs Improvement
+                    {% endif %}
+                </p>
+            </div>
+
+            {% if analysis %}
+            <div class="ats-breakdown">
+                <h3>Score Breakdown</h3>
+                <div class="breakdown-grid">
+                    <div class="breakdown-item">
+                        <span class="breakdown-label">Skills Match</span>
+                        <div class="breakdown-bar">
+                            <div class="breakdown-fill" style="width: {{ analysis.get('skills_match', 0) }}%; background: #3b82f6;"></div>
+                        </div>
+                        <span class="breakdown-value">{{ analysis.get('skills_match', 0) }}%</span>
+                    </div>
+                    <div class="breakdown-item">
+                        <span class="breakdown-label">Experience Match</span>
+                        <div class="breakdown-bar">
+                            <div class="breakdown-fill" style="width: {{ analysis.get('experience_match', 0) }}%; background: #10b981;"></div>
+                        </div>
+                        <span class="breakdown-value">{{ analysis.get('experience_match', 0) }}%</span>
+                    </div>
+                    <div class="breakdown-item">
+                        <span class="breakdown-label">Education Match</span>
+                        <div class="breakdown-bar">
+                            <div class="breakdown-fill" style="width: {{ analysis.get('education_match', 0) }}%; background: #f59e0b;"></div>
+                        </div>
+                        <span class="breakdown-value">{{ analysis.get('education_match', 0) }}%</span>
+                    </div>
+                    <div class="breakdown-item">
+                        <span class="breakdown-label">Overall Fit</span>
+                        <div class="breakdown-bar">
+                            <div class="breakdown-fill" style="width: {{ analysis.get('overall_fit', 0) }}%; background: #8b5cf6;"></div>
+                        </div>
+                        <span class="breakdown-value">{{ analysis.get('overall_fit', 0) }}%</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="ats-details-grid">
+                <div class="ats-detail-card">
+                    <h4>✅ Matched Skills</h4>
+                    <div class="skills-tags">
+                        {% for skill in analysis.get('matched_skills', []) %}
+                        <span class="skill-tag" style="background: #10b981;">{{ skill }}</span>
+                        {% else %}
+                        <p style="color: var(--text-light);">No matched skills data</p>
+                        {% endfor %}
+                    </div>
+                </div>
+
+                <div class="ats-detail-card">
+                    <h4>❌ Missing Skills</h4>
+                    <div class="skills-tags">
+                        {% for skill in analysis.get('missing_skills', []) %}
+                        <span class="skill-tag" style="background: #ef4444;">{{ skill }}</span>
+                        {% else %}
+                        <p style="color: var(--text-light);">No missing skills data</p>
+                        {% endfor %}
+                    </div>
+                </div>
+
+                <div class="ats-detail-card">
+                    <h4>💪 Your Strengths</h4>
+                    <ul class="ats-list">
+                        {% for strength in analysis.get('strengths', []) %}
+                        <li>{{ strength }}</li>
+                        {% else %}
+                        <li style="color: var(--text-light);">No strengths data</li>
+                        {% endfor %}
+                    </ul>
+                </div>
+
+                <div class="ats-detail-card">
+                    <h4>💡 Recommendations</h4>
+                    <ul class="ats-list">
+                        {% for rec in analysis.get('recommendations', []) %}
+                        <li>{{ rec }}</li>
+                        {% else %}
+                        <li style="color: var(--text-light);">No recommendations data</li>
+                        {% endfor %}
+                    </ul>
+                </div>
+            </div>
+
+            <div class="ats-summary-card">
+                <h4>AI Analysis Summary</h4>
+                <p>{{ analysis.get('summary', 'No summary available') }}</p>
+            </div>
+            {% endif %}
+
+            <div class="application-info-card">
+                <h4>Application Information</h4>
+                <p><strong>Applied On:</strong> {{ application.applied_at.strftime('%B %d, %Y at %I:%M %p') }}</p>
+                <p><strong>Status:</strong> <span class="badge badge-{{ application.status }}">{{ application.status.title() }}</span></p>
+                <p><strong>Resume Used:</strong> {{ application.resume.original_filename }}</p>
+            </div>
+        </div>
+    </div>
+
+    <script src="{{ url_for('static', filename='script.js') }}"></script>
+</body>
+</html>

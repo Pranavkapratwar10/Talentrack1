@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Notifications - TalentTrack</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+    <nav class="navbar">
+        <div class="nav-container">
+            <div class="nav-brand-logo">
+                <img src="{{ url_for('static', filename='logo-icon.svg') }}" alt="TalentTrack" class="nav-logo-icon">
+                <h1 class="nav-brand">TalentTrack</h1>
+            </div>
+            <div class="nav-links">
+                <a href="{{ url_for('dashboard') }}" class="btn btn-primary">← Back to Dashboard</a>
+            </div>
+        </div>
+    </nav>
+
+    <div class="dashboard-container">
+        {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+                {% for category, message in messages %}
+                    <div class="flash flash-{{ category }}">{{ message }}</div>
+                {% endfor %}
+            {% endif %}
+        {% endwith %}
+
+        <div class="notifications-page">
+            <div class="page-header">
+                <h1><span class="bell-icon">🔔</span> Notifications</h1>
+                <p>All your application status updates</p>
+            </div>
+
+            {% if notifications %}
+            <div class="notifications-list">
+                {% for notification in notifications %}
+                <div class="notification-card notification-{{ notification.status }} {% if not notification.is_read %}unread{% endif %}">
+                    <div class="notification-header">
+                        <div class="notification-icon">
+                            {% if notification.status == 'shortlisted' %}
+                            🎉
+                            {% elif notification.status == 'rejected' %}
+                            📋
+                            {% endif %}
+                        </div>
+                        <div class="notification-content">
+                            <div class="notification-title-row">
+                                <h4>
+                                    {% if notification.status == 'shortlisted' %}
+                                    Congratulations! You've been Shortlisted
+                                    {% elif notification.status == 'rejected' %}
+                                    Application Update
+                                    {% endif %}
+                                </h4>
+                                {% if not notification.is_read %}
+                                <span class="unread-indicator">NEW</span>
+                                {% endif %}
+                            </div>
+                            <p class="notification-job">{{ notification.job.company_name }} - {{ notification.job.position }}</p>
+                            <p class="notification-message">{{ notification.admin_message }}</p>
+                            <small class="notification-time">{{ notification.status_updated_at.strftime('%B %d, %Y at %I:%M %p') }}</small>
+                        </div>
+                    </div>
+                    <div class="notification-actions">
+                        <a href="{{ url_for('view_application', app_id=notification.id) }}" class="btn btn-small btn-primary">View Application</a>
+                        {% if not notification.is_read %}
+                        <form method="POST" action="{{ url_for('mark_notification_read', app_id=notification.id) }}" style="display: inline;">
+                            <button type="submit" class="btn btn-small btn-secondary">Mark as Read</button>
+                        </form>
+                        {% endif %}
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+            {% else %}
+            <div class="empty-state-large">
+                <div class="empty-icon">🔔</div>
+                <h3>No Notifications Yet</h3>
+                <p>You'll see updates here when admins review your applications</p>
+                <a href="{{ url_for('dashboard') }}" class="btn btn-primary">Go to Dashboard</a>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+
+    <script src="{{ url_for('static', filename='script.js') }}"></script>
+</body>
+</html>

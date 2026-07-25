@@ -1,0 +1,161 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Create Job Posting - TalentTrack</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+    <nav class="navbar">
+        <div class="nav-container">
+            <div class="nav-brand-logo">
+                <img src="{{ url_for('static', filename='logo-icon.svg') }}" alt="TalentTrack" class="nav-logo-icon">
+                <h1 class="nav-brand">TalentTrack Admin</h1>
+            </div>
+            <div class="nav-links">
+                <a href="{{ url_for('admin_dashboard') }}" class="btn btn-primary">← Back to Dashboard</a>
+            </div>
+        </div>
+    </nav>
+
+    <div class="auth-container">
+        <div class="auth-box" style="max-width: 700px;">
+            <h2 class="auth-title">Create Job Posting</h2>
+            <p class="auth-subtitle">Post a new job opportunity</p>
+
+            {% with messages = get_flashed_messages(with_categories=true) %}
+                {% if messages %}
+                    {% for category, message in messages %}
+                        <div class="flash flash-{{ category }}">{{ message }}</div>
+                    {% endfor %}
+                {% endif %}
+            {% endwith %}
+
+            <form method="POST" action="{{ url_for('create_job') }}" class="auth-form" enctype="multipart/form-data">
+                <div class="form-group">
+                    <label for="company_name">Company Name *</label>
+                    <input type="text" id="company_name" name="company_name" required>
+                </div>
+
+                <div class="form-group">
+                    <label>Company Logo (optional)</label>
+                    <div class="logo-upload-options">
+                        <div class="logo-option">
+                            <input type="radio" id="logo_url_option" name="logo_option" value="url" checked onclick="toggleLogoInput('url')">
+                            <label for="logo_url_option">🌐 Use Online URL</label>
+                        </div>
+                        <div class="logo-option">
+                            <input type="radio" id="logo_file_option" name="logo_option" value="file" onclick="toggleLogoInput('file')">
+                            <label for="logo_file_option">📁 Upload Image File</label>
+                        </div>
+                    </div>
+                    
+                    <div id="url_input" class="logo-input-section">
+                        <input type="url" id="company_logo" name="company_logo" placeholder="https://example.com/logo.png">
+                        <small>Enter a URL to a company logo image (e.g., from company website)</small>
+                    </div>
+                    
+                    <div id="file_input" class="logo-input-section" style="display: none;">
+                        <div class="file-upload-box">
+                            <input type="file" id="company_logo_file" name="company_logo_file" accept="image/*" onchange="previewLogo(event)">
+                            <label for="company_logo_file" class="file-upload-label-modern">
+                                <div class="upload-icon">🖼️</div>
+                                <div class="upload-text">
+                                    <strong>Click to choose image</strong>
+                                    <span>or drag and drop</span>
+                                </div>
+                                <div class="upload-formats">PNG, JPG, JPEG, GIF, SVG, WEBP</div>
+                            </label>
+                            <div id="logo_preview" class="logo-preview" style="display: none;">
+                                <img id="preview_image" src="" alt="Logo Preview">
+                                <button type="button" class="remove-preview" onclick="removeLogo()">✕ Remove</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label for="position">Position/Job Title *</label>
+                    <input type="text" id="position" name="position" required placeholder="e.g., Senior Python Developer">
+                </div>
+
+                <div class="form-group">
+                    <label for="required_skills">Required Skills * (comma-separated)</label>
+                    <textarea id="required_skills" name="required_skills" rows="3" required placeholder="Python, Django, Flask, PostgreSQL, Docker, AWS"></textarea>
+                    <small>Enter skills separated by commas</small>
+                </div>
+
+                <div class="form-group">
+                    <label for="experience_required">Experience Required (optional)</label>
+                    <input type="text" id="experience_required" name="experience_required" placeholder="e.g., 3-5 years">
+                </div>
+
+                <div class="form-group">
+                    <label for="education_required">Education Required (optional)</label>
+                    <input type="text" id="education_required" name="education_required" placeholder="e.g., Bachelor's in Computer Science">
+                </div>
+
+                <div class="form-group">
+                    <label for="vacancies">Number of Vacancies *</label>
+                    <input type="number" id="vacancies" name="vacancies" required min="1" value="1">
+                </div>
+
+                <div class="form-group">
+                    <label for="description">Job Description (optional)</label>
+                    <textarea id="description" name="description" rows="5" placeholder="Describe the role, responsibilities, and requirements..."></textarea>
+                </div>
+
+                <button type="submit" class="btn btn-primary btn-block">Create Job Posting</button>
+            </form>
+        </div>
+    </div>
+
+    <script src="{{ url_for('static', filename='script.js') }}"></script>
+    <script>
+        function toggleLogoInput(option) {
+            const urlInput = document.getElementById('url_input');
+            const fileInput = document.getElementById('file_input');
+            const logoPreview = document.getElementById('logo_preview');
+            
+            if (option === 'url') {
+                urlInput.style.display = 'block';
+                fileInput.style.display = 'none';
+                document.getElementById('company_logo_file').value = '';
+                logoPreview.style.display = 'none';
+            } else {
+                urlInput.style.display = 'none';
+                fileInput.style.display = 'block';
+                document.getElementById('company_logo').value = '';
+            }
+        }
+        
+        function previewLogo(event) {
+            const file = event.target.files[0];
+            if (file) {
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    const preview = document.getElementById('logo_preview');
+                    const previewImage = document.getElementById('preview_image');
+                    previewImage.src = e.target.result;
+                    preview.style.display = 'flex';
+                    
+                    // Hide the upload label
+                    document.querySelector('.file-upload-label-modern').style.display = 'none';
+                }
+                reader.readAsDataURL(file);
+            }
+        }
+        
+        function removeLogo() {
+            const fileInput = document.getElementById('company_logo_file');
+            const preview = document.getElementById('logo_preview');
+            const uploadLabel = document.querySelector('.file-upload-label-modern');
+            
+            fileInput.value = '';
+            preview.style.display = 'none';
+            uploadLabel.style.display = 'flex';
+        }
+    </script>
+</body>
+</html>

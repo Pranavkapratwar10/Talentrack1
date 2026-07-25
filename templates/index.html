@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>TalentTrack - Home</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+    <!-- Hero Section -->
+    <section class="hero">
+        <div class="hero-overlay"></div>
+        <div class="hero-content">
+            <div class="hero-logo">
+                <img src="{{ url_for('static', filename='logo.svg') }}" alt="TalentTrack Logo" class="main-logo">
+            </div>
+            <h1 class="hero-title">Welcome to <span class="brand">TalentTrack</span></h1>
+            <p class="hero-subtitle">AI-Powered Applicant Tracking System</p>
+            <p class="hero-description">
+                Transform your hiring process with intelligent resume analysis, automated ATS scoring, 
+                and comprehensive candidate management. Powered by advanced AI technology.
+            </p>
+            <div class="hero-buttons">
+                <a href="{{ url_for('login') }}" class="btn btn-primary">Login</a>
+                <a href="{{ url_for('register') }}" class="btn btn-secondary">Create Account</a>
+            </div>
+        </div>
+        <div class="hero-features">
+            <div class="feature-card">
+                <div class="feature-icon">🤖</div>
+                <h3>AI-Powered Analysis</h3>
+                <p>Intelligent resume parsing and ATS scoring using Groq AI with Llama 3.3 70B model</p>
+            </div>
+            <div class="feature-card">
+                <div class="feature-icon">📊</div>
+                <h3>Analytics Dashboard</h3>
+                <p>Comprehensive insights with 6 interactive graphs showing application trends and metrics</p>
+            </div>
+            <div class="feature-card">
+                <div class="feature-icon">🎯</div>
+                <h3>Smart Matching</h3>
+                <p>Automated candidate-job matching with detailed ATS scoring and skill analysis</p>
+            </div>
+            <div class="feature-card">
+                <div class="feature-icon">📄</div>
+                <h3>Resume Management</h3>
+                <p>Upload multiple resumes with AI extraction of skills, experience, education, and projects</p>
+            </div>
+            <div class="feature-card">
+                <div class="feature-icon">🔔</div>
+                <h3>Real-time Notifications</h3>
+                <p>Instant updates on application status with personalized messages from recruiters</p>
+            </div>
+            <div class="feature-card">
+                <div class="feature-icon">🏢</div>
+                <h3>Company Management</h3>
+                <p>One application per company rule with vacancy limits and smart shortlisting controls</p>
+            </div>
+            <div class="feature-card">
+                <div class="feature-icon">⚡</div>
+                <h3>Instant Processing</h3>
+                <p>Lightning-fast PDF parsing and real-time ATS score calculation for immediate results</p>
+            </div>
+            <div class="feature-card">
+                <div class="feature-icon">🔒</div>
+                <h3>Secure & Private</h3>
+                <p>Enterprise-grade security with encrypted data storage and role-based access control</p>
+            </div>
+        </div>
+    </section>
+
+    <!-- Flash Messages -->
+    {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+            <div class="flash-container">
+                {% for category, message in messages %}
+                    <div class="flash flash-{{ category }}">{{ message }}</div>
+                {% endfor %}
+            </div>
+        {% endif %}
+    {% endwith %}
+
+    <script src="{{ url_for('static', filename='script.js') }}"></script>
+</body>
+</html>

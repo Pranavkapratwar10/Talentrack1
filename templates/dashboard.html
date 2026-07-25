@@ -1,0 +1,570 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dashboard - TalentTrack</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+<body>
+    <nav class="navbar">
+        <div class="nav-container">
+            <div class="nav-brand-logo">
+                <img src="{{ url_for('static', filename='logo-icon.svg') }}" alt="TalentTrack" class="nav-logo-icon">
+                <h1 class="nav-brand">TalentTrack</h1>
+            </div>
+            <div class="nav-links">
+                <!-- User Profile Dropdown -->
+                <div class="profile-dropdown">
+                    <div class="profile-circle" onclick="toggleProfileMenu()">
+                        <span>{{ user.username[0].upper() }}</span>
+                        {% if unread_count > 0 %}
+                        <span class="profile-notification-badge">{{ unread_count }}</span>
+                        {% endif %}
+                    </div>
+                    <div id="profileMenu" class="profile-menu">
+                        <div class="profile-header">
+                            <div class="profile-circle-large">
+                                <span>{{ user.username[0].upper() }}</span>
+                            </div>
+                            <h3>{{ user.username }}</h3>
+                            <p>{{ user.email }}</p>
+                        </div>
+                        <div class="profile-details">
+                            <div class="detail-item">
+                                <span class="detail-icon">📧</span>
+                                <div>
+                                    <small>Email</small>
+                                    <p>{{ user.email }}</p>
+                                </div>
+                            </div>
+                            <div class="detail-item">
+                                <span class="detail-icon">📱</span>
+                                <div>
+                                    <small>Mobile</small>
+                                    <p>{{ user.mobile }}</p>
+                                </div>
+                            </div>
+                            <div class="detail-item">
+                                <span class="detail-icon">👤</span>
+                                <div>
+                                    <small>Account Type</small>
+                                    <p>{{ 'Admin' if user.is_admin else 'User' }}</p>
+                                </div>
+                            </div>
+                            <div class="detail-item">
+                                <span class="detail-icon">📄</span>
+                                <div>
+                                    <small>Resumes</small>
+                                    <p>{{ resumes|length }} uploaded</p>
+                                </div>
+                            </div>
+                            <div class="detail-item">
+                                <span class="detail-icon">📝</span>
+                                <div>
+                                    <small>Applications</small>
+                                    <p>{{ applications|length }} submitted</p>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="profile-actions">
+                            <a href="{{ url_for('notifications') }}" class="btn btn-primary btn-block" style="margin-bottom: 0.5rem;">
+                                🔔 Notifications
+                                {% if unread_count > 0 %}
+                                <span class="notification-count-badge">{{ unread_count }}</span>
+                                {% endif %}
+                            </a>
+                            <a href="{{ url_for('logout') }}" class="btn btn-danger btn-block">Logout</a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <div class="dashboard-container">
+        {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+                {% for category, message in messages %}
+                    <div class="flash flash-{{ category }}">{{ message }}</div>
+                {% endfor %}
+            {% endif %}
+        {% endwith %}
+
+
+        <!-- Resume Management Section (At Top) -->
+        <div class="resume-section-top">
+            <div class="section-header">
+                <h2>📄 Resume Management</h2>
+                <span class="resume-count">{{ resumes|length }} Resume(s)</span>
+            </div>
+            
+            <div class="resume-upload-card">
+                <h4>Upload New Resume</h4>
+                <form method="POST" action="{{ url_for('upload_resume') }}" enctype="multipart/form-data">
+                    <div class="file-upload-wrapper">
+                        <input type="file" id="resume" name="resume" accept=".pdf" required>
+                        <label for="resume" class="file-upload-label">
+                            <span class="file-upload-icon">📎</span>
+                            <span>Choose PDF File</span>
+                        </label>
+                    </div>
+                    <button type="submit" class="btn btn-primary btn-block" style="margin-top: 1rem;">
+                        Upload & Analyze Resume
+                    </button>
+                </form>
+            </div>
+
+            {% if resumes %}
+            <div class="resume-history">
+                <h4>Your Resumes</h4>
+                {% for resume in resumes %}
+                <div class="resume-item">
+                    <div class="resume-info">
+                        <span class="resume-icon">📄</span>
+                        <div>
+                            <strong>{{ resume.original_filename }}</strong>
+                            <small>Uploaded: {{ resume.uploaded_at.strftime('%b %d, %Y at %I:%M %p') }}</small>
+                        </div>
+                    </div>
+                    <div class="resume-actions">
+                        <button class="btn btn-small btn-primary" onclick="viewResumeData({{ resume.id }})">View Data</button>
+                        {% if not resume.applications %}
+                        <form method="POST" action="{{ url_for('delete_resume', resume_id=resume.id) }}" style="display: inline;">
+                            <button type="submit" class="btn btn-small btn-danger" onclick="return confirm('Delete this resume?')">Delete</button>
+                        </form>
+                        {% else %}
+                        <span class="badge badge-shortlisted" style="font-size: 0.75rem;">Used in {{ resume.applications|length }} app(s)</span>
+                        {% endif %}
+                    </div>
+                </div>
+                
+                <div id="resume-data-{{ resume.id }}" class="resume-data-display" style="display: none;">
+                    <h5>Extracted Data:</h5>
+                    {% set resume_json = resume.extracted_data | from_json %}
+                    {% if resume_json %}
+                    <div class="extracted-data-grid">
+                        <div class="data-section">
+                            <h6>📚 Skills ({{ resume_json.get('skills', [])|length }})</h6>
+                            <div class="skills-tags">
+                                {% for skill in resume_json.get('skills', []) %}
+                                <span class="skill-tag-small">{{ skill }}</span>
+                                {% endfor %}
+                            </div>
+                        </div>
+                        
+                        <div class="data-section">
+                            <h6>💼 Experience</h6>
+                            <p><strong>{{ resume_json.get('experience', 'Not specified') }}</strong></p>
+                        </div>
+                        
+                        <div class="data-section">
+                            <h6>🎓 Education</h6>
+                            <ul>
+                                {% for edu in resume_json.get('education', []) %}
+                                <li>{{ edu }}</li>
+                                {% endfor %}
+                            </ul>
+                        </div>
+                        
+                        {% if resume_json.get('certifications') %}
+                        <div class="data-section">
+                            <h6>🏆 Certifications ({{ resume_json.get('certifications', [])|length }})</h6>
+                            <ul>
+                                {% for cert in resume_json.get('certifications', []) %}
+                                <li>{{ cert }}</li>
+                                {% endfor %}
+                            </ul>
+                        </div>
+                        {% endif %}
+                        
+                        {% if resume_json.get('projects') %}
+                        <div class="data-section">
+                            <h6>🚀 Projects ({{ resume_json.get('projects', [])|length }})</h6>
+                            <ul>
+                                {% for project in resume_json.get('projects', []) %}
+                                <li>{{ project }}</li>
+                                {% endfor %}
+                            </ul>
+                        </div>
+                        {% endif %}
+                        
+                        {% if resume_json.get('summary') %}
+                        <div class="data-section full-width">
+                            <h6>📝 Professional Summary</h6>
+                            <p style="font-style: italic; line-height: 1.8;">{{ resume_json.get('summary') }}</p>
+                        </div>
+                        {% endif %}
+                    </div>
+                    {% else %}
+                    <div class="error-message">
+                        <p style="color: var(--error-color); margin-bottom: 0.5rem;">⚠️ Could not parse extracted data.</p>
+                    </div>
+                    {% endif %}
+                </div>
+                {% endfor %}
+            </div>
+            {% endif %}
+        </div>
+
+        <!-- Main Cards Section -->
+        <div class="main-cards-grid">
+            <!-- Available Jobs Card -->
+            <div class="main-card">
+                <div class="card-header">
+                    <h2>💼 Available Job Opportunities</h2>
+                    <span class="card-count">{{ jobs|length }} Jobs</span>
+                </div>
+                <div class="card-content">
+                    {% if jobs %}
+                    <div class="job-list-compact">
+                        {% for job in jobs[:5] %}
+                        <div class="job-item-compact expandable-job" onclick="toggleJobDetails({{ job.id }})">
+                            <div class="job-item-header">
+                                {% if job.company_logo %}
+                                <img src="{{ job.company_logo | logo_url }}" alt="{{ job.company_name }}" class="company-logo-tiny">
+                                {% else %}
+                                <div class="company-logo-tiny-placeholder">{{ job.company_name[0] }}</div>
+                                {% endif %}
+                                <div class="job-item-info">
+                                    <h4>{{ job.company_name }}</h4>
+                                    <p>{{ job.position }}</p>
+                                    <small>{{ job.vacancies }} {{ 'vacancy' if job.vacancies == 1 else 'vacancies' }} | Posted {{ job.created_at.strftime('%b %d, %Y') }}</small>
+                                </div>
+                                <span class="expand-icon" id="expand-icon-{{ job.id }}">▼</span>
+                            </div>
+                            
+                            <!-- Expandable Details Section -->
+                            <div class="job-details-expanded" id="job-details-{{ job.id }}" style="display: none;">
+                                <div class="job-skills-section">
+                                    <strong>Required Skills:</strong>
+                                    <div class="skills-tags">
+                                        {% for skill in job.required_skills.split(',') %}
+                                        <span class="skill-tag-small">{{ skill.strip() }}</span>
+                                        {% endfor %}
+                                    </div>
+                                </div>
+                                
+                                {% if job.experience_required %}
+                                <div class="job-detail-item">
+                                    <strong>Experience Required:</strong> {{ job.experience_required }}
+                                </div>
+                                {% endif %}
+                                
+                                {% if job.education_required %}
+                                <div class="job-detail-item">
+                                    <strong>Education Required:</strong> {{ job.education_required }}
+                                </div>
+                                {% endif %}
+                                
+                                {% if job.description %}
+                                <div class="job-detail-item">
+                                    <strong>Job Description:</strong>
+                                    <p class="job-description-text">{{ job.description }}</p>
+                                </div>
+                                {% endif %}
+                                
+                                <div class="job-item-actions" onclick="event.stopPropagation()">
+                                    {% if job.company_name in applied_companies %}
+                                    <button class="btn btn-small btn-secondary" disabled>Already Applied ✓</button>
+                                    {% elif not resumes %}
+                                    <button class="btn btn-small" disabled>Upload Resume First</button>
+                                    {% else %}
+                                    <button class="btn btn-small btn-primary" onclick="showApplyModal({{ job.id }}, '{{ job.company_name }}', '{{ job.position }}')">Apply Now</button>
+                                    {% endif %}
+                                </div>
+                            </div>
+                        </div>
+                        {% endfor %}
+                    </div>
+                    {% if jobs|length > 5 %}
+                    <button class="btn btn-secondary btn-block" onclick="showAllJobs()">View All {{ jobs|length }} Jobs</button>
+                    {% endif %}
+                    {% else %}
+                    <p class="empty-state">No job openings available at the moment.</p>
+                    {% endif %}
+                </div>
+            </div>
+
+            <!-- My Applications Card -->
+            <div class="main-card">
+                <div class="card-header">
+                    <h2>📝 My Applications</h2>
+                    <span class="card-count">{{ applications|length }} Total</span>
+                </div>
+                <div class="card-content">
+                    {% if applications %}
+                    <div class="application-list-compact">
+                        {% for app in applications[:5] %}
+                        <div class="application-item-compact">
+                            <div class="app-item-header">
+                                {% if app.job.company_logo %}
+                                <img src="{{ app.job.company_logo | logo_url }}" alt="{{ app.job.company_name }}" class="company-logo-tiny">
+                                {% else %}
+                                <div class="company-logo-tiny-placeholder">{{ app.job.company_name[0] }}</div>
+                                {% endif %}
+                                <div class="app-item-info">
+                                    <h4>{{ app.job.company_name }}</h4>
+                                    <p>{{ app.job.position }}</p>
+                                </div>
+                            </div>
+                            <div class="app-item-meta">
+                                <span class="ats-mini" style="background: {% if app.ats_score >= 70 %}#10b981{% elif app.ats_score >= 50 %}#f59e0b{% else %}#ef4444{% endif %};">
+                                    {{ app.ats_score }}%
+                                </span>
+                                <span class="badge badge-{{ app.status }}">{{ app.status.title() }}</span>
+                                {% if not app.is_read and app.status in ['shortlisted', 'rejected'] %}
+                                <span class="new-badge-mini">NEW</span>
+                                {% endif %}
+                            </div>
+                        </div>
+                        {% endfor %}
+                    </div>
+                    {% if applications|length > 5 %}
+                    <button class="btn btn-secondary btn-block" onclick="showAllApplications()">View All {{ applications|length }} Applications</button>
+                    {% endif %}
+                    {% else %}
+                    <p class="empty-state">No applications yet. Start applying to jobs!</p>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+
+        <!-- Statistics Graphs Section -->
+        <div class="stats-section">
+            <h2>📊 Your Career Analytics</h2>
+            <div class="graphs-grid-six">
+                <!-- Graph 1: Application Status Distribution -->
+                <div class="graph-card">
+                    <h3>📋 Application Status</h3>
+                    <p class="graph-subtitle">Current status of your applications</p>
+                    <canvas id="statusChart"></canvas>
+                </div>
+
+                <!-- Graph 2: ATS Score Distribution -->
+                <div class="graph-card">
+                    <h3>🎯 ATS Score Range</h3>
+                    <p class="graph-subtitle">Quality of your applications</p>
+                    <canvas id="atsChart"></canvas>
+                </div>
+
+                <!-- Graph 3: Top Companies Applied -->
+                <div class="graph-card">
+                    <h3>🏢 Companies Applied</h3>
+                    <p class="graph-subtitle">Your target companies</p>
+                    <canvas id="companyChart"></canvas>
+                </div>
+
+                <!-- Graph 4: Resume Performance -->
+                <div class="graph-card">
+                    <h3>📄 Resume Performance</h3>
+                    <p class="graph-subtitle">Average ATS score per resume</p>
+                    <canvas id="resumeChart"></canvas>
+                </div>
+
+                <!-- Graph 5: Application Timeline -->
+                <div class="graph-card">
+                    <h3>📅 Application Activity</h3>
+                    <p class="graph-subtitle">Your application history</p>
+                    <canvas id="timelineChart"></canvas>
+                </div>
+
+                <!-- Graph 6: Success Rate -->
+                <div class="graph-card">
+                    <h3>✨ Success Metrics</h3>
+                    <p class="graph-subtitle">Shortlisted vs Total applications</p>
+                    <canvas id="successChart"></canvas>
+                </div>
+            </div>
+        </div>
+
+        <!-- All Jobs Modal -->
+        <div id="allJobsModal" class="modal-overlay" style="display: none;">
+            <div class="modal-large">
+                <div class="modal-header">
+                    <h2>All Available Jobs</h2>
+                    <span class="close-modal" onclick="closeAllJobsModal()">&times;</span>
+                </div>
+                <div class="modal-body">
+                    {% for job in jobs %}
+                    <div class="job-card-full">
+                        <div class="job-header">
+                            {% if job.company_logo %}
+                            <img src="{{ job.company_logo | logo_url }}" alt="{{ job.company_name }}" class="company-logo">
+                            {% else %}
+                            <div class="company-logo-placeholder">{{ job.company_name[0] }}</div>
+                            {% endif %}
+                            <div class="job-info">
+                                <h4>{{ job.company_name }}</h4>
+                                <p class="job-position">{{ job.position }}</p>
+                                <p class="job-meta">{{ job.vacancies }} {{ 'vacancy' if job.vacancies == 1 else 'vacancies' }} | Posted {{ job.created_at.strftime('%b %d, %Y') }}</p>
+                            </div>
+                        </div>
+                        
+                        <div class="job-skills">
+                            <strong>Required Skills:</strong>
+                            <div class="skills-tags">
+                                {% for skill in job.required_skills.split(',')[:5] %}
+                                <span class="skill-tag-small">{{ skill.strip() }}</span>
+                                {% endfor %}
+                                {% if job.required_skills.split(',')|length > 5 %}
+                                <span class="skill-tag-small">+{{ job.required_skills.split(',')|length - 5 }} more</span>
+                                {% endif %}
+                            </div>
+                        </div>
+                        
+                        {% if job.description %}
+                        <p class="job-description">{{ job.description[:150] }}{% if job.description|length > 150 %}...{% endif %}</p>
+                        {% endif %}
+                        
+                        <div class="job-actions">
+                            {% if job.company_name in applied_companies %}
+                            <button class="btn btn-secondary btn-block" disabled>Already Applied to {{ job.company_name }} ✓</button>
+                            {% elif not resumes %}
+                            <button class="btn btn-secondary btn-block" disabled>Upload Resume First</button>
+                            {% else %}
+                            <button class="btn btn-primary btn-block" onclick="showApplyModal({{ job.id }}, '{{ job.company_name }}', '{{ job.position }}')">Apply Now</button>
+                            {% endif %}
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+
+        <!-- All Applications Modal -->
+        <div id="allApplicationsModal" class="modal-overlay" style="display: none;">
+            <div class="modal-large">
+                <div class="modal-header">
+                    <h2>All My Applications</h2>
+                    <span class="close-modal" onclick="closeAllApplicationsModal()">&times;</span>
+                </div>
+                <div class="modal-body">
+                    {% for app in applications %}
+                    <div class="application-card">
+                        <div class="app-header">
+                            {% if app.job.company_logo %}
+                            <img src="{{ app.job.company_logo | logo_url }}" alt="{{ app.job.company_name }}" class="company-logo-small">
+                            {% else %}
+                            <div class="company-logo-placeholder-small">{{ app.job.company_name[0] }}</div>
+                            {% endif %}
+                            <div>
+                                <h4>{{ app.job.company_name }}</h4>
+                                <p>{{ app.job.position }}</p>
+                            </div>
+                        </div>
+                        <div class="app-body">
+                            <p><strong>ATS Score:</strong> 
+                                <span class="ats-score-badge" style="background: {% if app.ats_score >= 70 %}#10b981{% elif app.ats_score >= 50 %}#f59e0b{% else %}#ef4444{% endif %};">
+                                    {{ app.ats_score }}%
+                                </span>
+                            </p>
+                            <p><strong>Status:</strong> 
+                                <span class="badge badge-{{ app.status }}">{{ app.status.title() }}</span>
+                                {% if not app.is_read and app.status in ['shortlisted', 'rejected'] %}
+                                <span class="new-badge">NEW</span>
+                                {% endif %}
+                            </p>
+                            <p><strong>Applied:</strong> {{ app.applied_at.strftime('%b %d, %Y') }}</p>
+                            <p><strong>Resume:</strong> {{ app.resume.original_filename }}</p>
+                            {% if app.admin_message and app.status in ['shortlisted', 'rejected'] %}
+                            <div class="admin-message-preview">
+                                <strong>Message from Admin:</strong>
+                                <p>{{ app.admin_message[:100] }}{% if app.admin_message|length > 100 %}...{% endif %}</p>
+                            </div>
+                            {% endif %}
+                        </div>
+                        <a href="{{ url_for('view_application', app_id=app.id) }}" class="btn btn-small btn-primary btn-block">View Details</a>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+
+        <!-- Apply to Job Modal -->
+        <div id="applyModal" class="modal-overlay" style="display: none;">
+            <div class="modal-content" style="max-width: 500px;">
+                <div class="modal-header">
+                    <h3 id="applyModalTitle" style="color: white;">Apply to Job</h3>
+                    <span class="close-modal" onclick="closeApplyModal()">&times;</span>
+                </div>
+                <div class="modal-body">
+                    <form id="applyForm" method="POST" action="">
+                        <div class="form-group">
+                            <label for="resume_select"><strong>Select Resume to Submit:</strong></label>
+                            <select id="resume_select" name="resume_id" class="resume-select" required onchange="updateSelectedResume()">
+                                <option value="">-- Choose a Resume --</option>
+                                {% for resume in resumes %}
+                                <option value="{{ resume.id }}" data-filename="{{ resume.original_filename }}">{{ resume.original_filename }} (Uploaded: {{ resume.uploaded_at.strftime('%b %d, %Y') }})</option>
+                                {% endfor %}
+                            </select>
+                            
+                            <!-- Selected Resume Display -->
+                            <div id="selected_resume_display" style="display: none; margin-top: 1rem; padding: 1rem; background: #f0f9ff; border-left: 4px solid var(--primary-color); border-radius: 8px;">
+                                <div style="display: flex; align-items: center; gap: 0.5rem;">
+                                    <span style="font-size: 1.5rem;">📄</span>
+                                    <div>
+                                        <strong style="color: var(--primary-color);">Selected Resume:</strong>
+                                        <p id="selected_resume_name" style="margin: 0.25rem 0 0 0; color: var(--text-dark); font-weight: 500;"></p>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <small style="color: var(--text-light); margin-top: 0.5rem; display: block;">
+                                💡 Tip: Select the resume that best matches this job's requirements
+                            </small>
+                        </div>
+                        <div class="modal-actions">
+                            <button type="button" class="btn btn-secondary" onclick="closeApplyModal()">Cancel</button>
+                            <button type="submit" class="btn btn-primary">Submit Application</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+
+    </div>
+
+    <script src="{{ url_for('static', filename='script.js') }}"></script>
+    <script src="{{ url_for('static', filename='dashboard.js') }}"></script>
+    <script>
+        // Initialize Charts with data
+        const applications = {{ applications_data | tojson }};
+        const resumes = {{ resumes_data | tojson }};
+        initializeCharts(applications, resumes);
+        
+        // Toggle job details expansion
+        function toggleJobDetails(jobId) {
+            const detailsDiv = document.getElementById('job-details-' + jobId);
+            const expandIcon = document.getElementById('expand-icon-' + jobId);
+            
+            if (detailsDiv.style.display === 'none' || detailsDiv.style.display === '') {
+                detailsDiv.style.display = 'block';
+                expandIcon.textContent = '▲';
+                expandIcon.style.transform = 'rotate(180deg)';
+            } else {
+                detailsDiv.style.display = 'none';
+                expandIcon.textContent = '▼';
+                expandIcon.style.transform = 'rotate(0deg)';
+            }
+        }
+        
+        // Update selected resume display
+        function updateSelectedResume() {
+            const select = document.getElementById('resume_select');
+            const display = document.getElementById('selected_resume_display');
+            const nameDisplay = document.getElementById('selected_resume_name');
+            
+            if (select.value) {
+                const selectedOption = select.options[select.selectedIndex];
+                const filename = selectedOption.getAttribute('data-filename');
+                nameDisplay.textContent = filename;
+                display.style.display = 'block';
+            } else {
+                display.style.display = 'none';
+            }
+        }
+    </script>
+</body>
+</html>

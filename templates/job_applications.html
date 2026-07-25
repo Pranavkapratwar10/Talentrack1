@@ -1,0 +1,216 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Job Applications - TalentTrack</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+    <nav class="navbar">
+        <div class="nav-container">
+            <div class="nav-brand-logo">
+                <img src="{{ url_for('static', filename='logo-icon.svg') }}" alt="TalentTrack" class="nav-logo-icon">
+                <h1 class="nav-brand">TalentTrack Admin</h1>
+            </div>
+            <div class="nav-links">
+                <a href="{{ url_for('admin_dashboard') }}" class="btn btn-primary">← Back to Dashboard</a>
+            </div>
+        </div>
+    </nav>
+
+    <div class="dashboard-container">
+        <div class="dashboard-header">
+            <div style="display: flex; align-items: center; gap: 1rem;">
+                {% if job.company_logo %}
+                <img src="{{ job.company_logo | logo_url }}" alt="{{ job.company_name }}" style="width: 60px; height: 60px; object-fit: contain; border-radius: 8px;">
+                {% else %}
+                <div style="width: 60px; height: 60px; background: var(--primary-color); border-radius: 8px; display: flex; align-items: center; justify-content: center; color: white; font-size: 1.5rem; font-weight: bold;">
+                    {{ job.company_name[0] }}
+                </div>
+                {% endif %}
+                <div>
+                    <h2>{{ job.company_name }} - {{ job.position }}</h2>
+                    <p>
+                        <strong>Vacancies:</strong> {{ job.vacancies }} | 
+                        <strong>Total Applications:</strong> {{ applications|length }} | 
+                        <strong>Shortlisted:</strong> 
+                        {% set shortlisted_count = applications|selectattr('status', 'equalto', 'shortlisted')|list|length %}
+                        <span style="color: {% if shortlisted_count >= job.vacancies %}var(--error-color){% else %}var(--success-color){% endif %}; font-weight: bold;">
+                            {{ shortlisted_count }} / {{ job.vacancies }}
+                        </span>
+                        {% if shortlisted_count >= job.vacancies %}
+                        <span style="background: var(--error-color); color: white; padding: 0.25rem 0.5rem; border-radius: 4px; font-size: 0.75rem; margin-left: 0.5rem;">
+                            ⚠️ FULL
+                        </span>
+                        {% else %}
+                        <span style="background: var(--success-color); color: white; padding: 0.25rem 0.5rem; border-radius: 4px; font-size: 0.75rem; margin-left: 0.5rem;">
+                            ✓ {{ job.vacancies - shortlisted_count }} spots left
+                        </span>
+                        {% endif %}
+                    </p>
+                </div>
+            </div>
+        </div>
+
+        {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+                {% for category, message in messages %}
+                    <div class="flash flash-{{ category }}">{{ message }}</div>
+                {% endfor %}
+            {% endif %}
+        {% endwith %}
+
+        <div class="users-section">
+            <h3>Applications (Sorted by ATS Score)</h3>
+            
+            <div class="job-details-card" style="margin-bottom: 2rem;">
+                <h4>Required Skills:</h4>
+                <div class="skills-tags">
+                    {% for skill in job.required_skills.split(',') %}
+                    <span class="skill-tag">{{ skill.strip() }}</span>
+                    {% endfor %}
+                </div>
+                {% if job.description %}
+                <h4 style="margin-top: 1rem;">Description:</h4>
+                <p>{{ job.description }}</p>
+                {% endif %}
+            </div>
+
+            <div class="table-container">
+                <table class="users-table">
+                    <thead>
+                        <tr>
+                            <th>Applicant</th>
+                            <th>Email</th>
+                            <th>Mobile</th>
+                            <th>ATS Score</th>
+                            <th>Details</th>
+                            <th>Resume</th>
+                            <th>Applied On</th>
+                            <th>Status</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% set shortlisted_count = applications|selectattr('status', 'equalto', 'shortlisted')|list|length %}
+                        {% set vacancy_full = shortlisted_count >= job.vacancies %}
+                        
+                        {% for application in applications %}
+                        <tr>
+                            <td><strong>{{ application.user.username }}</strong></td>
+                            <td>{{ application.user.email }}</td>
+                            <td>{{ application.user.mobile }}</td>
+                            <td>
+                                <span class="ats-score-badge" style="background: {% if application.ats_score >= 70 %}#10b981{% elif application.ats_score >= 50 %}#f59e0b{% else %}#ef4444{% endif %};">
+                                    {{ application.ats_score }}%
+                                </span>
+                            </td>
+                            <td>
+                                <a href="{{ url_for('view_application', app_id=application.id) }}" class="btn btn-small btn-primary">View Analysis</a>
+                            </td>
+                            <td>{{ application.resume.original_filename }}</td>
+                            <td>{{ application.applied_at.strftime('%b %d, %Y') }}</td>
+                            <td>
+                                <span class="badge badge-{{ application.status }}">
+                                    {{ application.status.title() }}
+                                </span>
+                            </td>
+                            <td class="action-buttons">
+                                {% if application.status == 'shortlisted' %}
+                                    <button type="button" class="btn btn-small btn-success" disabled style="opacity: 0.6;">Already Shortlisted ✓</button>
+                                {% elif vacancy_full %}
+                                    <button type="button" class="btn btn-small btn-success" disabled title="All vacancies filled! Reject someone first to shortlist more." style="opacity: 0.5; cursor: not-allowed;">
+                                        Shortlist (Full)
+                                    </button>
+                                {% else %}
+                                    <button type="button" class="btn btn-small btn-success" onclick="showStatusModal({{ application.id }}, 'shortlisted', '{{ application.user.username }}', '{{ application.job.position }}')">Shortlist</button>
+                                {% endif %}
+                                
+                                {% if application.status != 'rejected' %}
+                                <button type="button" class="btn btn-small btn-danger" onclick="showStatusModal({{ application.id }}, 'rejected', '{{ application.user.username }}', '{{ application.job.position }}')">Reject</button>
+                                {% else %}
+                                <button type="button" class="btn btn-small btn-danger" disabled style="opacity: 0.6;">Already Rejected</button>
+                                {% endif %}
+                            </td>
+                        </tr>
+                        {% else %}
+                        <tr>
+                            <td colspan="9" class="empty-state">No applications yet</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <script src="{{ url_for('static', filename='script.js') }}"></script>
+</body>
+</html>
+
+
+    <!-- Status Update Modal -->
+    <div id="statusModal" class="modal" style="display: none;">
+        <div class="modal-content">
+            <span class="close" onclick="closeStatusModal()">&times;</span>
+            <h3 id="modalTitle">Update Application Status</h3>
+            <form id="statusForm" method="POST" action="">
+                <div class="form-group">
+                    <label>Candidate: <strong id="candidateName"></strong></label>
+                    <label>Position: <strong id="positionName"></strong></label>
+                    <label>New Status: <strong id="newStatus"></strong></label>
+                </div>
+                
+                <div class="form-group">
+                    <label for="admin_message">Message to Candidate (Optional)</label>
+                    <textarea id="admin_message" name="admin_message" rows="5" class="form-textarea" placeholder="Enter a personalized message for the candidate..."></textarea>
+                    <small>If left empty, a default message will be sent.</small>
+                </div>
+                
+                <div class="modal-actions">
+                    <button type="submit" class="btn btn-primary">Send Notification</button>
+                    <button type="button" class="btn btn-secondary" onclick="closeStatusModal()">Cancel</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <script>
+        function showStatusModal(appId, status, candidateName, positionName) {
+            const modal = document.getElementById('statusModal');
+            const form = document.getElementById('statusForm');
+            const statusText = status.charAt(0).toUpperCase() + status.slice(1);
+            
+            document.getElementById('modalTitle').textContent = statusText + ' Candidate';
+            document.getElementById('candidateName').textContent = candidateName;
+            document.getElementById('positionName').textContent = positionName;
+            document.getElementById('newStatus').textContent = statusText;
+            
+            form.action = `/admin/update_application_status/${appId}/${status}`;
+            
+            // Set default message
+            const messageField = document.getElementById('admin_message');
+            if (status === 'shortlisted') {
+                messageField.placeholder = `Congratulations! You have been shortlisted for the ${positionName} position. We will contact you soon for the next steps.`;
+            } else if (status === 'rejected') {
+                messageField.placeholder = `Thank you for applying to the ${positionName} position. After careful consideration, we have decided to move forward with other candidates.`;
+            }
+            
+            modal.style.display = 'block';
+        }
+        
+        function closeStatusModal() {
+            const modal = document.getElementById('statusModal');
+            modal.style.display = 'none';
+            document.getElementById('admin_message').value = '';
+        }
+        
+        // Close modal when clicking outside
+        window.onclick = function(event) {
+            const modal = document.getElementById('statusModal');
+            if (event.target == modal) {
+                closeStatusModal();
+            }
+        }
+    </script>

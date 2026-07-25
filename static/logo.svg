@@ -1,0 +1,27 @@
+<svg width="200" height="60" viewBox="0 0 200 60" xmlns="http://www.w3.org/2000/svg">
+  <!-- Background Circle -->
+  <defs>
+    <linearGradient id="logoGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#667eea;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#764ba2;stop-opacity:1" />
+    </linearGradient>
+    <linearGradient id="textGradient" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" style="stop-color:#667eea;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#764ba2;stop-opacity:1" />
+    </linearGradient>
+  </defs>
+  
+  <!-- Icon Circle -->
+  <circle cx="30" cy="30" r="24" fill="url(#logoGradient)"/>
+  
+  <!-- T Letter in Circle -->
+  <text x="30" y="42" font-family="Arial, sans-serif" font-size="32" font-weight="bold" fill="white" text-anchor="middle">T</text>
+  
+  <!-- TalentTrack Text -->
+  <text x="62" y="28" font-family="Arial, sans-serif" font-size="20" font-weight="bold" fill="url(#textGradient)">Talent</text>
+  <text x="62" y="46" font-family="Arial, sans-serif" font-size="20" font-weight="bold" fill="url(#textGradient)">Track</text>
+  
+  <!-- AI Badge -->
+  <rect x="150" y="18" width="40" height="20" rx="10" fill="#fbbf24"/>
+  <text x="170" y="32" font-family="Arial, sans-serif" font-size="12" font-weight="bold" fill="white" text-anchor="middle">AI</text>
+</svg>
