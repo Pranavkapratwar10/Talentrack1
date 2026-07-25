@@ -35,7 +35,8 @@
 
 ## 🚀 Live Demo
 
-**🌐 Live Application:** `[Your Render URL will go here]`
+**🌐 Live Application:** 
+https://talentrack10.onrender.com/
 
 **Admin Login:**
 - Username: `admin`
